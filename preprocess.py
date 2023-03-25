@@ -8,7 +8,7 @@ from sklearn import preprocessing
 from sklearn.preprocessing import OneHotEncoder
 import re
 from sklearn import preprocessing
-
+from tqdm import tqdm
 import datetime
 
 
@@ -47,9 +47,11 @@ def binarize_target(x):
     return lb.transform(x)
 
 
+
 def convert_zip_code(zip_code):
     if zip_code == '':
         zip_code = "00000"
+    zip_code=re.sub("[^0-9]", "",zip_code)
     zip_code = re.sub(r'X{0,5}', "0", zip_code)
     zip_code = np.float32(zip_code)
     return zip_code
@@ -199,10 +201,46 @@ def preprocess(df):
     return train,test
 
 
+def preprocess_2(df,filename):
+    arr=[]
+    lent=df.shape[0]
+    zip_code=list(map(str,df['zip-code'].tolist()))
+    for i in tqdm(range(0,lent)):
+        arr.append(convert_zip_code(zip_code[i]))
+    arr=np.array(arr)
+    del zip_code
+    
+    frst=one_hot_enc(train,ONE_HOT_ENC)
+    scnd=np.array(arr)
+    del arr
+    
+    arr2=[]
+    for i in tqdm(range(scnd.shape[0])):
+        arr2.append(np.concatenate((frst[i],[scnd[i]]),axis=0))
+    arr2=np.array(arr2)
+    del frst 
+    del scnd
+    
+    sparse_matrix=scipy.sparse.csc_matrix(np.array(arr2))
+    del arr2
+    np.save(filename,sparse_matrix)
+
+
+
+
+preprocess_2(train,"train.npy")
+
 start= datetime.datetime.now()
 
 train,test=preprocess(df)
+del test
+del df
+preprocess_2(train,"train.npy")
 
+np.save("y_train.npy",np.array(binarize_target(train['disputed']).tolist()))
+del train
 end= datetime.datetime.now()
 
 print("preprocessing took:{} sec".format(end-start))
+
+print(np.load('train.npy',allow_pickle=True))
