@@ -3,51 +3,63 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
-import tensorflow as tf
 from sklearn import preprocessing
 from sklearn.preprocessing import OneHotEncoder
 import re
 from sklearn import preprocessing
 from tqdm import tqdm
 import datetime
+import tensorflow as tf
+import tensorflow_hub as hub
 
-
+#reading the data frame
 df=pd.read_csv("../complaints.csv")
 
+#these columns will be selected for the model
 COLN=['Date received','Product','Sub-product','Issue','Consumer complaint narrative','Company','State','ZIP code','Company response to consumer','Consumer disputed?']
+#these features will be used for one hot encoding
 ONE_HOT_ENC=['product','sub-product','issue', 'company', 'state','response']
+#missing values of below features will be imputed
 FILL_MISSING=["sub-product","state","zip-code","narrative"]
+
+#This function prints the unique values in a column
 def print_unique_values(df,coln):
     arr=np.unique(df[coln].to_list())
     for i in range(len(arr)):
         print(i,"--",arr[i])
     del arr
     
-#pre processing function
+#This helper function fill in missing values in column
 def fill_in_missing(df,coln):
     df[coln]=df[coln].fillna("")
+    #this returns dataframe
     return df
     
-
+#This helper funmction is used to select and change column names
 def transform_name(df):
     df=df[df['Consumer disputed?'].notna()]
     df=df.drop(["Complaint ID","Timely response?","Date sent to company","Tags","Submitted via","Company public response","Consumer consent provided?","Sub-issue"],axis=1)
     df.columns=['date-received', 'product', 'sub-product', 'issue','narrative', 'company', 'state', 'zip-code','response', 'disputed']
+    #this returns data frame
     return df
 
+#This helper function is used for one hot encoding
 def one_hot_enc(df,coln):
     enc = OneHotEncoder(handle_unknown='ignore')
     enc.fit(np.array(df[coln]))
     s=enc.transform(np.array(df[coln]))
+    #this returns array
     return s.toarray()
 
+#This helper function is used to encode target variable into binary format
 def binarize_target(x):
     lb = preprocessing.LabelBinarizer()
     lb.fit(['No','Yes'])
+    #this returns array
     return lb.transform(x)
 
 
-
+#This helper function is used for binning of zipcodes
 def convert_zip_code(zip_code):
     if zip_code == '':
         zip_code = "00000"
@@ -56,6 +68,8 @@ def convert_zip_code(zip_code):
     zip_code = np.float32(zip_code)
     return zip_code
 
+
+#Mappimg values of sub-proudct & product
 
 # Credits https://www.kaggle.com/code/ashwinids/cleaning-exploring-consumer-complaints-data
 mapping_old2new = {
@@ -147,8 +161,8 @@ prod2sub = {
     "Not given":"Not given"
 }
 
+#This helper function is used to map new subproduct values
 # Credits https://www.kaggle.com/code/ashwinids/cleaning-exploring-consumer-complaints-data
-
 def get_subprods(x):
     
     if x['sub-product'] in mapping_old2new:
@@ -171,6 +185,7 @@ prodmap = {
     "Credit reporting": "Credit reporting, credit repair services, or other personal consumer reports",
     "Credit card": "Credit card or prepaid card"
 }
+#This helper gunction is used to map product values 
 def get_product(x):
     
     if not isinstance(x['sub-product'], str):
@@ -183,7 +198,7 @@ def get_product(x):
 
 
 
-
+#This helper function uses get_subprods() & get_product() to prepocess values
 def map_values(df):
     df['sub-product'] = df[['product','sub-product']].apply(lambda x: get_subprods(x), axis =1)
     df['product'] = df[['product','sub-product']].apply(lambda x: get_product(x), axis =1)
@@ -191,17 +206,21 @@ def map_values(df):
 
 def preprocess(df):
     df=transform_name(df)
+    #map new values of features and sub-product feature
     df=map_values(df)
+    #fill in missing values
     df=fill_in_missing(df,FILL_MISSING)
-    #time based splitting
+    #We are doing time based spiting checking whether model is not overfitting & generalises good to future data.
+
     df=df.sort_values("date-received")
     train=df.iloc[0:int(np.floor(df.shape[0]*0.67)),:]
     test=df.iloc[int(np.floor(df.shape[0]*0.67)):,:]
-    #time based splitting
+    #returns train & test dataframe
     return train,test
 
 
 def preprocess_2(df,filename):
+    #bucketing of zipcode & appending the results into array
     arr=[]
     lent=df.shape[0]
     zip_code=list(map(str,df['zip-code'].tolist()))
@@ -210,10 +229,12 @@ def preprocess_2(df,filename):
     arr=np.array(arr)
     del zip_code
     
+    #doing one hot encoding of defined features
     frst=one_hot_enc(train,ONE_HOT_ENC)
     scnd=np.array(arr)
     del arr
     
+    #appending ONE HOT ENCODED array & ZIP CODE array
     arr2=[]
     for i in tqdm(range(scnd.shape[0])):
         arr2.append(np.concatenate((frst[i],[scnd[i]]),axis=0))
@@ -221,14 +242,15 @@ def preprocess_2(df,filename):
     del frst 
     del scnd
     
+    #converting the appended array to sparse matrix to for saving sisk space 
     sparse_matrix=scipy.sparse.csc_matrix(np.array(arr2))
     del arr2
+    #saving the sparse matrix into disk
     np.save(filename,sparse_matrix)
 
 
 
-
-preprocess_2(train,"train.npy")
+#doing pre-processing 
 
 start= datetime.datetime.now()
 
@@ -243,4 +265,26 @@ end= datetime.datetime.now()
 
 print("preprocessing took:{} sec".format(end-start))
 
-print(np.load('train.npy',allow_pickle=True))
+#loading the sparse array into memory
+
+# print(np.load('train.npy',allow_pickle=True))
+
+#doing transformer based UNIVERSAL SENTENCE ENCODING on narrative text based feature
+
+#https://arxiv.org/abs/1803.11175
+
+
+train=pd.read_csv("train_ap.csv",on_bad_lines='skip')
+test=pd.read_csv("test_ap.csv",on_bad_lines='skip')
+
+#fill in missing values
+train=train['narrative'].fillna(" ")
+test=test['narrative'].fillna(" ")
+
+#applying encoding
+embed_narrative_1 = embed(train)
+embed_narrative_2 = embed(test)
+
+#saving 512 dimensional embedding into disk
+np.save("train.npy",embed_narrative_1)
+np.save("test.npy",embed_narrative_2)
