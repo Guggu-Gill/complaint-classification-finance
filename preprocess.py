@@ -11,6 +11,8 @@ from tqdm import tqdm
 import datetime
 import tensorflow as tf
 import tensorflow_hub as hub
+from imblearn.under_sampling import RandomUnderSampler
+
 
 #reading the data frame
 df=pd.read_csv("../complaints.csv")
@@ -204,7 +206,7 @@ def map_values(df):
     df['product'] = df[['product','sub-product']].apply(lambda x: get_product(x), axis =1)
     return df
 
-def preprocess(df):
+def preprocess_time_spliting(df):
     df=transform_name(df)
     #map new values of features and sub-product feature
     df=map_values(df)
@@ -217,6 +219,22 @@ def preprocess(df):
     test=df.iloc[int(np.floor(df.shape[0]*0.67)):,:]
     #returns train & test dataframe
     return train,test
+
+
+def preprocess(df):
+    #helper function for random spliting
+    df=transform_name(df)
+    df=map_values(df)
+    df=fill_in_missing(df,FILL_MISSING)
+    X_train, X_test, y_train, y_test = train_test_split(df.drop("disputed",axis=1), df['disputed'], test_size=0.33, random_state=42)
+    
+    return X_train, X_test, binarize_target(y_train), binarize_target(y_test)
+
+#helper function for random under sampling
+def preprocess_under(X,y):
+    rus = RandomUnderSampler(random_state=0)
+    X_resampled, y_resampled = rus.fit_resample(X, y)
+    return X_resampled,y_resampled
 
 
 def preprocess_2(df,filename):
@@ -254,13 +272,22 @@ def preprocess_2(df,filename):
 
 start= datetime.datetime.now()
 
-train,test=preprocess(df)
-del test
+X_train, X_test, y_train, y_test=preprocess(df)
 del df
-preprocess_2(train,"train.npy")
+#saving X_test
+preprocess_2(X_test,"guggu/X_test.npy")
 
-np.save("y_train.npy",np.array(binarize_target(train['disputed']).tolist()))
-del train
+#Under sampling of X_train & saving into memory
+X_train_sam,y_train_sam=preprocess_under(X_train,y_train)
+preprocess_2(X_train_sam,"guggu/X_train.npy")
+
+#saving y target variables
+np.save("guggu/y_train.npy",y_train_sam)
+np.save("guggu/y_test.npy",y_test)
+
+#saving narrative text
+np.save("guggu/X_train_nar",X_train_sam['narrative'])
+np.save("guggu/X_test_nar",X_test['narrative'])
 end= datetime.datetime.now()
 
 print("preprocessing took:{} sec".format(end-start))
@@ -269,22 +296,26 @@ print("preprocessing took:{} sec".format(end-start))
 
 # print(np.load('train.npy',allow_pickle=True))
 
+
+
+
+train=np.load("guggu/X_train_na.npy")
+test=pd.read_csv("guggu/X_tesr_na.npy")
+
 #doing transformer based UNIVERSAL SENTENCE ENCODING on narrative text based feature
 
 #https://arxiv.org/abs/1803.11175
 
+MODULE_URL = "https://tfhub.dev/google/universal-sentence-encoder/4"
+model = hub.load(MODULE_URL)
 
-train=pd.read_csv("train_ap.csv",on_bad_lines='skip')
-test=pd.read_csv("test_ap.csv",on_bad_lines='skip')
-
-#fill in missing values
-train=train['narrative'].fillna(" ")
-test=test['narrative'].fillna(" ")
+def embed(input):
+    return model(input)
 
 #applying encoding
 embed_narrative_1 = embed(train)
 embed_narrative_2 = embed(test)
 
 #saving 512 dimensional embedding into disk
-np.save("train.npy",embed_narrative_1)
-np.save("test.npy",embed_narrative_2)
+np.save("train_narrative.npy",embed_narrative_1)
+np.save("test_narrative.npy",embed_narrative_2)
