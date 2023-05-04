@@ -1,6 +1,6 @@
 # Deep & Wide Neural Networks
 
-Deep & Wide Model performs both generalisation & memorisation learning both higher & lower order feature interaction.
+Deep & Wide Model performs both generalisation & memorisation learning both higher & lower order feature interaction. We compared results of three models where Deep-Wide-Network outperformed the other.  
 
 Deep-Wide-Network(left),Deep-Network(middle),Wide-Network(left)
 ![model-diagram (3)](https://user-images.githubusercontent.com/128667568/236314011-e970ebe7-f820-42ad-af0e-6db0dfa083c7.jpg)
