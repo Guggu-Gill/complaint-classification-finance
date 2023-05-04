@@ -70,10 +70,12 @@ def custom_binary_loss(y_true, y_pred,w_0,w_1):
     return -K.mean(tf.cast((w_0*term_0),tf.float32) + tf.cast((w_1*term_1),tf.float32), axis=1)
 
 
-#Deep network for 512 dimen encoded senetece
-def get_model_deep(optimizer,loss):
-    embedding_input=tf.keras.Input(shape=(512,),name="text_embedings")
+#Deep network for 722 dimen vector
+def deep(optimizer,loss):
+    embedding_input=keras.Input(shape=(722,),name="input")
     deep = tf.keras.layers.Dense(256, activation='relu',name="Dense_Deep_256")(embedding_input)
+    deep=tf.keras.layers.Dropout(.2)(deep)
+    deep = tf.keras.layers.Dense(128, activation='relu',name="Dense_Deep_128")(deep)
     
     deep = tf.keras.layers.Dense(64, activation='relu',name="Dense_Deep_64")(deep)
     deep=tf.keras.layers.BatchNormalization()(deep)
@@ -88,12 +90,27 @@ def get_model_deep(optimizer,loss):
                     loss=loss,metrics=[loss,tf.keras.metrics.TruePositives()
                     ])
     return keras_model
+#wide network
+def wide(optimizer,loss):
+    one_hot_embd=keras.Input(shape=(722,),name="input",sparse=True)
+    wide = tf.keras.layers.Dense(16, activation='relu',name="Wide_16")(one_hot_embd)
+    both = tf.keras.layers.concatenate([wide],name="concat_16_16")
+    
+    output = tf.keras.layers.Dense(1, activation='sigmoid',name='sigmoid')(both)
+    keras_model = tf.keras.models.Model([one_hot_embd], output)
+    keras_model.compile(optimizer=optimizer,
+                    loss=loss,metrics=[loss,tf.keras.metrics.TruePositives()
+                    ])
+    return keras_model
+
+
+
 
 
 #Deep & Wide Network for feature enginnered One_Hot_Encoded data & dense sentence embedded data,
 #It mimics both generalisation  & Memorisation improving the offline & Online metric
-def get_model_deep_wide(optimizer,loss):
-    one_hot_embd=tf.keras.Input(shape=(211,),name="one_hot_embd_concated",sparse=True)
+def Deep_wide(optimizer,loss):
+    one_hot_embd=tf.keras.Input(shape=(210,),name="one_hot_embd_concated",sparse=True)
     embedding_input=tf.keras.Input(shape=(512,),name="text_embedings")
     deep = tf.keras.layers.Dense(256, activation='relu',name="Dense_Deep_256")(embedding_input)
     deep=tf.keras.layers.Dropout(.2)(deep)
@@ -118,7 +135,7 @@ def get_model_deep_wide(optimizer,loss):
 
 
 #using deep & wide model
-model=get_model_deep_wide(tf.keras.optimizers.legacy.Adam(learning_rate=0.001),"binary_crossentropy")
+model=Deep_wide(tf.keras.optimizers.legacy.Adam(learning_rate=0.001),"binary_crossentropy")
 
 #printing model summary
 model.summary()
