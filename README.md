@@ -6,6 +6,7 @@ Preprocessing Techniques used-
 1. Binning continous variables.
 2. One Hot encoding of categorical variable.
 3. Encoding text based data using Encoder based attention based Transformer based Uniform Sentence encoder.
+! https://amitness.com/images/use-transformer-variant.png
 
 
 Images description
