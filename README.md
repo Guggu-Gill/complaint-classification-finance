@@ -6,7 +6,8 @@ Preprocessing Techniques used-
 1. Binning continous variables.
 2. One Hot encoding of categorical variable.
 3. Encoding text based data using Encoder based attention based Transformer based Uniform Sentence encoder.
-! [model-diagram (3)](https://amitness.com/images/use-transformer-variant.png)
+![use-transformer-variant](https://github.com/Guggu-Gill/complaint-classification-finance/assets/128667568/a4e8cc18-e1cf-4b9e-a653-94aebca0861e)
+
 
 
 Images description
