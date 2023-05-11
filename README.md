@@ -1,6 +1,9 @@
 # Deep & Wide Neural Networks
 
 Deep & Wide Model performs both generalisation & memorisation learning both higher & lower order feature interaction. We compared results of three models where Deep-Wide-Network outperformed the other ones.
+
+**We are reviewing the perfomance of Deep & Wide along with other baselines**
+
 ![image04](https://github.com/Guggu-Gill/complaint-classification-finance/assets/128667568/9489d45b-97df-4303-9b5d-e9da0293ed5e)
 
 
