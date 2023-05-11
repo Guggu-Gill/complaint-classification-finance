@@ -24,4 +24,6 @@ Images description
 Results showing improvement in AUC.  
 ![AUC](https://user-images.githubusercontent.com/128667568/236313235-7e767740-a91d-4a3e-9d93-3b874ac978ad.jpg)
 
+**clearly 0.59 improvemnt in AUC is significant as compared to baselines. Companies are spending billons of dollars on ML research to improve the AUC by even 0.001.**
+
 
