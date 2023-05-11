@@ -8,7 +8,8 @@ Preprocessing Techniques used-
 3. Encoding text based data using Encoder based attention based Transformer based Uniform Sentence encoder.
 
 
-1. Deep-Wide-Network(left)
+Images description
+1. Deep-Wide-Network(left),
 2. Deep-Network(middle),
 3. Wide-Network(left)
 ![model-diagram (3)](https://user-images.githubusercontent.com/128667568/236314011-e970ebe7-f820-42ad-af0e-6db0dfa083c7.jpg)
